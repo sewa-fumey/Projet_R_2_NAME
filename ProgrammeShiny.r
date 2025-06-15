@@ -1,9 +1,3 @@
-
-
-# 📋 Installation des packages nécessaires (à exécuter une seule fois)
-# install.packages(c("shiny", "shinydashboard", "DT", "plotly", "tidyverse", "janitor"))
-
-# 📚 Chargement des librairies
 library(shiny)
 library(shinydashboard)
 library(DT)
@@ -61,8 +55,8 @@ ui <- dashboardPage(
     sliderInput("heart_rate_filter", 
                "Fréquence cardiaque :",
                min = min(df$heart_rate, na.rm = TRUE),
-               max = max(df$heart_rate, na.rm = TRUE),
-               value = c(min(df$heart_rate, na.rm = TRUE), max(df$heart_rate, na.rm = TRUE)),
+               max = 900,
+               value = c(min(df$heart_rate, na.rm = TRUE), 900),
                step = 1)
   ),
   
@@ -112,9 +106,19 @@ ui <- dashboardPage(
               status = "success", solidHeader = TRUE,
               plotlyOutput("gender_pie")),
           
-          box(width = 6, title = "Fréquence cardiaque par diagnostic", 
+          box(width = 6, title = "Pression artérielle systolique par diagnostic", 
               status = "success", solidHeader = TRUE,
-              plotlyOutput("heart_rate_violin"))
+              plotlyOutput("systolic_bp_violin"))
+        ),
+        
+        fluidRow(
+          box(width = 6, title = "Pression artérielle diastolique par diagnostic", 
+              status = "info", solidHeader = TRUE,
+              plotlyOutput("diastolic_bp_violin")),
+          
+          box(width = 6, title = "Troponine par diagnostic", 
+              status = "danger", solidHeader = TRUE,
+              plotlyOutput("troponin_violin"))
         )
       ),
       
@@ -233,12 +237,36 @@ server <- function(input, output, session) {
       layout(title = "Répartition par genre")
   })
   
-  output$heart_rate_violin <- renderPlotly({
-    p <- ggplot(filtered_data(), aes(x = result, y = heart_rate, fill = result)) +
+  output$systolic_bp_violin <- renderPlotly({
+    p <- ggplot(filtered_data(), aes(x = result, y = systolic_blood_pressure, fill = result)) +
       geom_violin(alpha = 0.8) +
       geom_boxplot(width = 0.2, alpha = 0.8) +
-      labs(title = "Distribution de la fréquence cardiaque", 
-           x = "Diagnostic", y = "Fréquence cardiaque") +
+      labs(title = "Distribution de la pression artérielle systolique", 
+           x = "Diagnostic", y = "Pression systolique (mmHg)") +
+      theme_minimal() +
+      scale_fill_manual(values = c("Sain" = "#2E8B57", "Pathologique" = "#DC143C"))
+    
+    ggplotly(p, tooltip = c("x", "y", "fill"))
+  })
+  
+  output$diastolic_bp_violin <- renderPlotly({
+    p <- ggplot(filtered_data(), aes(x = result, y = diastolic_blood_pressure, fill = result)) +
+      geom_violin(alpha = 0.8) +
+      geom_boxplot(width = 0.2, alpha = 0.8) +
+      labs(title = "Distribution de la pression artérielle diastolique", 
+           x = "Diagnostic", y = "Pression diastolique (mmHg)") +
+      theme_minimal() +
+      scale_fill_manual(values = c("Sain" = "#2E8B57", "Pathologique" = "#DC143C"))
+    
+    ggplotly(p, tooltip = c("x", "y", "fill"))
+  })
+  
+  output$troponin_violin <- renderPlotly({
+    p <- ggplot(filtered_data(), aes(x = result, y = troponin, fill = result)) +
+      geom_violin(alpha = 0.8) +
+      geom_boxplot(width = 0.2, alpha = 0.8) +
+      labs(title = "Distribution de la troponine", 
+           x = "Diagnostic", y = "Troponine (ng/mL)") +
       theme_minimal() +
       scale_fill_manual(values = c("Sain" = "#2E8B57", "Pathologique" = "#DC143C"))
     
