@@ -17,10 +17,31 @@ df$gender <- factor(df$gender, levels = c(0, 1), labels = c("Femme", "Homme"))
 df$result <- factor(df$result, levels = c("negative", "positive"), labels = c("Sain", "Pathologique"))
 df <- df %>% distinct()
 
-# Filtrage des valeurs aberrantes
+
+
+# ================  Filtrage des valeurs aberrantes ==========================================================================================
 df <- df %>% 
   filter(!(result == "Pathologique" & ck_mb > 20)) %>%  # CK-MB > 20 pour pathologiques
   filter(troponin <= 2.5)  # Troponine > 2.5
+
+# 🚨 Filtrage des valeurs selon critères médicaux spécifiques
+print(paste("Nombre de lignes avant filtrage:", nrow(df)))
+
+df <- df %>%
+ filter(
+   troponin <= 0.35,                    # Troponine ≤ 1.0 ng/mL
+   ck_mb <= 10,                        # CK-MB ≤ 10
+   diastolic_blood_pressure <= 100,    # Pression diastolique ≤ 100 mmHg
+   blood_sugar <= 300,                 # Glycémie ≤ 300 mg/dL
+   systolic_blood_pressure <= 170,     # Pression systolique ≤ 170 mmHg
+   heart_rate <= 110                   # Fréquence cardiaque ≤ 110 bpm
+ )
+
+print(paste("Nombre de lignes après filtrage:", nrow(df)))
+
+#=============================================================================================================================================
+
+
 
 # 🎨 Interface Utilisateur (UI)
 ui <- dashboardPage(
@@ -130,7 +151,7 @@ ui <- dashboardPage(
         )
       ),
       
-      # 📈 Onglet Corrélations
+      # 📈 ===============  Onglet Corrélations  ====================================================================================
       tabItem(tabName = "correlations",
         fluidRow(
           box(width = 6, title = "Fréquence cardiaque vs Pression systolique", 
@@ -208,6 +229,7 @@ ui <- dashboardPage(
               plotlyOutput("ckms_vs_trop"))
         )
       ),
+      #============================================================================================================================
       
       # 📋 Onglet Données brutes
       tabItem(tabName = "data",
@@ -266,7 +288,7 @@ server <- function(input, output, session) {
     )
   })
   
-  # 📈 Graphiques par diagnostic
+  # 📈 ========================================  Graphiques par diagnostic  =======================================================
   output$age_distribution <- renderPlotly({
     p <- ggplot(filtered_data(), aes(x = age, fill = result)) +
       geom_histogram(bins = 15, position = "dodge", alpha = 0.8) +
@@ -363,7 +385,7 @@ server <- function(input, output, session) {
     ggplotly(p, tooltip = c("x", "y", "fill"))
   })
   
-  # 📈 Graphiques de corrélation (15 comparaisons)
+  # 📈 =========================================  Graphiques de corrélation (15 comparaisons)  ========================================================
   output$hr_vs_sys <- renderPlotly({
     p <- ggplot(filtered_data(), aes(x = heart_rate, y = systolic_blood_pressure, color = result)) +
       geom_point(alpha = 0.7, size = 2) +
@@ -514,7 +536,7 @@ server <- function(input, output, session) {
     ggplotly(p, tooltip = c("x", "y", "colour"))
   })
   
-  # 📋 Tableaux de données
+  # 📋 =================================================  Tableaux de données  ==========================================================
   output$summary_stats <- DT::renderDataTable({
     filtered_data() %>%
       group_by(result) %>%
@@ -536,7 +558,7 @@ server <- function(input, output, session) {
     filtered_data()
   }, options = list(pageLength = 15, scrollX = TRUE))
   
-  # 💾 Téléchargement des données
+  # 💾 =====================================  Téléchargement des données  =======================================================
   output$download_data <- downloadHandler(
     filename = function() {
       paste("donnees_medicales_filtrees_", Sys.Date(), ".csv", sep = "")
